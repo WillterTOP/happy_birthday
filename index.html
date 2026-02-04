@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Для моей Христины ❤️</title>
+    <style>
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            overflow: hidden; background: #0a0212; 
+            font-family: 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        #bg-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(157, 80, 187, 0.4), rgba(36, 11, 54, 0.7)), 
+                        url('https://images.unsplash.com/photo-1499002238440-d264edd596ec?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover; background-position: center;
+            z-index: -1;
+        }
+
+        canvas { display: block; cursor: crosshair; }
+
+        #click-counter {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px);
+            padding: 10px 25px; border-radius: 30px; color: white;
+            font-weight: bold; border: 1px solid rgba(255,255,255,0.3);
+            z-index: 200; opacity: 0; transition: 1s;
+        }
+
+        .overlay-card {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; align-items: center; justify-content: center;
+            z-index: 2000; opacity: 0; transition: opacity 1s;
+        }
+
+        .content-box {
+            background: white; padding: 40px; border-radius: 30px;
+            text-align: center; max-width: 500px; width: 90%;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        .quiz-btn {
+            display: block; width: 100%; padding: 14px; margin: 12px 0;
+            border: 2px solid #9d50bb; border-radius: 12px;
+            background: white; cursor: pointer; transition: 0.3s;
+            font-size: 16px; color: #6e48aa; font-weight: 600;
+        }
+        .quiz-btn:hover { background: #6e48aa; color: white; }
+
+        #final-fireworks { background: transparent; flex-direction: column; pointer-events: none; }
+        .number-20 {
+            font-size: 180px; color: white; font-weight: bold;
+            text-shadow: 0 0 30px #ff00ff, 0 0 60px #00ffff;
+            animation: pulse 1.5s infinite; z-index: 10;
+        }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+        .photo-container { position: absolute; pointer-events: none; display: flex; flex-direction: column; align-items: center; z-index: 50; transition: 1s; opacity: 0; }
+        .mem-photo { border: 8px solid white; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 280px; border-radius: 5px; }
+        .photo-wish { background: white; color: #6e48aa; padding: 8px 15px; margin-top: -10px; font-weight: bold; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+<div id="bg-overlay"></div>
+<div id="click-counter">До главного сюрприза: <span id="count-num">50</span> кликов</div>
+
+<canvas id="canvas"></canvas>
+
+<div id="quiz-overlay" class="overlay-card" style="display: flex; opacity: 1;">
+    <div class="content-box">
+        <h2 style="color:#6e48aa">Важный опрос ❤️</h2>
+        <p id="question">Кто моя самая любимая девочка?</p>
+        <div id="options">
+            <button class="quiz-btn" onclick="checkAnswer(true)">Христина</button>
+            <button class="quiz-btn" onclick="checkAnswer(false)">Долина</button>
+        </div>
+    </div>
+</div>
+
+<div id="congratulation-card" class="overlay-card">
+    <div class="content-box">
+        <h1 style="color:#6e48aa">С Днём Рождения! 🎉</h1>
+        <p style="font-size: 18px; line-height: 1.6;">
+            Привет, Христинка! ❤️ Поздравляю тебя с твоим днём! <br><br>
+            Желаю тебе невероятного оптимизма, чтобы любая «морковка» сама шла в руки, а все цели достигались с прыжка! <br><br>
+            Сияй, мечтай и никогда не сдавайся!
+        </p>
+        <button class="quiz-btn" onclick="goToFireworks()">Услышала тебя, родной ❤️</button>
+    </div>
+</div>
+
+<div id="final-fireworks" class="overlay-card">
+    <div class="number-20">20</div>
+    <h2 style="color: white; margin-top: 20px; text-align: center; font-style: italic;">Будь самой счастливой! ❤️</h2>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let width, height, isQuizPassed = false, clickCount = 0, lastWishIndex = -1, isFinal = false;
+const targetClicks = 50;
+let items = [];
+
+// ТВОИ ФОТО
+const photos = [
+    "1.jpg", 
+    "2.jpg",
+    "3.jpg",
+    "4.jpg"
+];
+
+const photoWishes = ["Ты заслуживаешь лучшего ❤️", "Я всегда рядом 🥰", "Улыбайся чаще!", "Ты — моё счастье 💫", "Самая-самая моя ❤️"];
+
+// ТВОИ КОМПЛИМЕНТЫ
+const compliments = [
+    "Любобик ❤️", "Моя какашечка 💩", "Люблю тебя очень", "Самая нежная", 
+    "Ты — моё чудо", "Вкусно пахнешь", "Моя маленькая", "Ты — искусство", 
+    "Ты — мой свет", "Единственная", "С днём рождения!", "Моя радость", 
+    "Самая красивая", "Любобик мой", "Всегда рядом", "Моё всё"
+];
+
+const questions = [
+    { q: "Кто моя самая любимая девочка?", a: "Христина", b: "Долина" }, 
+    { q: "Что в тебе самое вкусное?", a: "Всё и сразу", b: "Твоя любовь к дисциплине" }
+];
+let step = 0;
+
+function checkAnswer(isCorrect) {
+    if (!isCorrect) { alert("Подумай получше! 🤔"); return; }
+    step++;
+    if (step < questions.length) {
+        document.getElementById('question').innerText = questions[step].q;
+        const btns = document.querySelectorAll('#quiz-overlay .quiz-btn');
+        btns[0].innerText = questions[step].a; 
+        btns[1].innerText = questions[step].b;
+    } else {
+        isQuizPassed = true;
+        hideElement('quiz-overlay');
+        document.getElementById('click-counter').style.opacity = '1';
+    }
+}
+
+function hideElement(id) {
+    const el = document.getElementById(id);
+    el.style.opacity = '0';
+    setTimeout(() => el.style.display = 'none', 1000);
+}
+
+function showElement(id) {
+    const el = document.getElementById(id);
+    el.style.display = 'flex';
+    setTimeout(() => el.style.opacity = '1', 100);
+}
+
+function createFirework() {
+    const x = Math.random() * width;
+    const y = Math.random() * (height * 0.4) + height * 0.1;
+    const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff5555', '#55ff55', '#ffffff', '#ffa500'];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    
+    for (let i = 0; i < 100; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 7 + 2;
+        items.push({
+            type: 'spark',
+            x: x, y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            opacity: 1,
+            color: color,
+            r: Math.random() * 2 + 1,
+            gravity: 0.1,
+            friction: 0.96,
+            life: 0.008 + Math.random() * 0.01
+        });
+    }
+}
+
+function goToFireworks() {
+    hideElement('congratulation-card');
+    showElement('final-fireworks');
+    isFinal = true;
+    
+    const loop = () => {
+        if (!isFinal) return;
+        createFirework();
+        setTimeout(loop, Math.random() * 500 + 300);
+    };
+    loop();
+}
+
+window.addEventListener('mousedown', (e) => {
+    if (!isQuizPassed || clickCount >= targetClicks || isFinal) return;
+    clickCount++;
+    document.getElementById('count-num').innerText = Math.max(0, targetClicks - clickCount);
+    
+    items.push({ 
+        type: 'word', 
+        x: e.clientX, y: e.clientY, 
+        text: compliments[Math.floor(Math.random() * compliments.length)], 
+        opacity: 1, 
+        vx: (Math.random()-0.5)*4, 
+        vy: -2.5, 
+        size: 24, 
+        life: 0.012 
+    });
+    
+    if (clickCount % 10 === 0) showPhoto(e.clientX, e.clientY);
+    
+    if (clickCount === targetClicks) {
+        document.getElementById('click-counter').style.opacity = '0';
+        showElement('congratulation-card');
+    }
+});
+
+function showPhoto(x, y) {
+    const container = document.createElement('div');
+    container.className = 'photo-container';
+    const img = document.createElement('img');
+    img.src = photos[Math.floor(Math.random() * photos.length)];
+    img.className = 'mem-photo';
+    
+    let wi; do { wi = Math.floor(Math.random() * photoWishes.length); } while (wi === lastWishIndex);
+    lastWishIndex = wi;
+    
+    const wish = document.createElement('div');
+    wish.className = 'photo-wish'; wish.innerText = photoWishes[wi];
+    
+    container.appendChild(img); container.appendChild(wish);
+    container.style.left = Math.min(Math.max(20, x-140), width-300) + 'px'; 
+    container.style.top = Math.min(Math.max(20, y-140), height-350) + 'px';
+    
+    document.body.appendChild(container);
+    
+    setTimeout(() => { 
+        container.style.opacity = '1'; 
+        container.style.transform = `rotate(${(Math.random()-0.5)*25}deg) scale(1.1)`; 
+    }, 50);
+    
+    setTimeout(() => { 
+        container.style.opacity = '0'; 
+        setTimeout(() => container.remove(), 1000); 
+    }, 4500);
+}
+
+function update() {
+    ctx.fillStyle = isFinal ? 'rgba(5, 1, 10, 0.25)' : 'rgba(10, 2, 18, 1)';
+    ctx.fillRect(0, 0, width, height);
+
+    for (let i = items.length - 1; i >= 0; i--) {
+        let p = items[i];
+        p.vx *= p.friction || 0.98;
+        p.vy *= p.friction || 0.98;
+        p.vy += p.gravity || 0;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.opacity -= p.life;
+
+        if (p.opacity <= 0) {
+            items.splice(i, 1);
+            continue;
+        }
+
+        ctx.globalAlpha = p.opacity;
+        if (p.type === 'word') {
+            ctx.font = `bold ${p.size}px Arial`; 
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.fillText(p.text, p.x, p.y);
+        } else {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = p.color;
+            if(isFinal) {
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = p.color;
+            }
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    }
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(update);
+}
+
+function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize);
+resize(); 
+update();
+</script>
+</body>
+</html>
